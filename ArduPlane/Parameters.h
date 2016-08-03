@@ -341,6 +341,9 @@ public:
         k_param_pidNavPitchAltitude, // unused
         k_param_pidWheelSteer, // unused
 
+        k_param_mixing_offset,
+        k_param_dspoiler_rud_rate,
+
         k_param_DataFlash = 253, // Logging Group
 
         // 254,255: reserved
@@ -446,7 +449,6 @@ public:
 
     // Navigational maneuvering limits
     //
-    AP_Int16 roll_limit_cd;
     AP_Int16 alt_offset;
     AP_Int16 acro_roll_rate;
     AP_Int16 acro_pitch_rate;
@@ -463,6 +465,8 @@ public:
     AP_Int8 reverse_elevons;
     AP_Int8 reverse_ch1_elevon;
     AP_Int8 reverse_ch2_elevon;
+    AP_Int16 mixing_offset;
+    AP_Int16 dspoiler_rud_rate;
     AP_Int16 num_resets;
     AP_Int32 log_bitmask;
     AP_Int8 reset_switch_chan;

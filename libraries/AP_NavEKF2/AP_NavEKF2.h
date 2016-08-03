@@ -62,11 +62,17 @@ public:
     // return -1 if no primary core selected
     int8_t getPrimaryCoreIndex(void) const;
 
-    // Return the last calculated NED position relative to the reference point (m) for the specified instance.
+    // Write the last calculated NE position relative to the reference point (m) for the specified instance.
     // An out of range instance (eg -1) returns data for the the primary instance
     // If a calculated solution is not available, use the best available data and return false
     // If false returned, do not use for flight control
-    bool getPosNED(int8_t instance, Vector3f &pos);
+    bool getPosNE(int8_t instance, Vector2f &posNE);
+
+    // Write the last calculated D position relative to the reference point (m) for the specified instance.
+    // An out of range instance (eg -1) returns data for the the primary instance
+    // If a calculated solution is not available, use the best available data and return false
+    // If false returned, do not use for flight control
+    bool getPosD(int8_t instance, float &posD);
 
     // return NED velocity in m/s for the specified instance
     // An out of range instance (eg -1) returns data for the the primary instance
@@ -173,6 +179,9 @@ public:
     // return the innovations for the specified instance
     // An out of range instance (eg -1) returns data for the the primary instance
     void  getInnovations(int8_t index, Vector3f &velInnov, Vector3f &posInnov, Vector3f &magInnov, float &tasInnov, float &yawInnov);
+
+    // publish output observer angular, velocity and position tracking error
+    void getOutputTrackingError(int8_t instance, Vector3f &error) const;
 
     // return the innovation consistency test ratios for the specified instance
     // An out of range instance (eg -1) returns data for the the primary instance
@@ -289,7 +298,8 @@ private:
     AP_Float _easNoise;             // equivalent airspeed measurement noise : m/s
     AP_Float _windVelProcessNoise;  // wind velocity state process noise : m/s^2
     AP_Float _wndVarHgtRateScale;   // scale factor applied to wind process noise due to height rate
-    AP_Float _magProcessNoise;      // magnetic field process noise : gauss/sec
+    AP_Float _magEarthProcessNoise; // Earth magnetic field process noise : gauss/sec
+    AP_Float _magBodyProcessNoise;  // Body magnetic field process noise : gauss/sec
     AP_Float _gyrNoise;             // gyro process noise : rad/s
     AP_Float _accNoise;             // accelerometer process noise : m/s^2
     AP_Float _gyroBiasProcessNoise; // gyro bias state process noise : rad/s
@@ -317,6 +327,9 @@ private:
     AP_Int16 _gpsCheckScaler;       // Percentage increase to be applied to GPS pre-flight accuracy and drift thresholds
     AP_Float _noaidHorizNoise;      // horizontal position measurement noise assumed when synthesised zero position measurements are used to constrain attitude drift : m
     AP_Int8 _logging_mask;          // mask of IMUs to log
+    AP_Float _yawNoise;             // magnetic yaw measurement noise : rad
+    AP_Int16 _yawInnovGate;         // Percentage number of standard deviations applied to magnetic yaw innovation consistency check
+    AP_Int8 _tauVelPosOutput;       // Time constant of output complementary filter : csec (centi-seconds)
 
     // Tuning parameters
     const float gpsNEVelVarAccScale;    // Scale factor applied to NE velocity measurement variance due to manoeuvre acceleration

@@ -43,11 +43,10 @@
 #include <Filter/Filter.h>                     // Filter library
 #include <AP_Buffer/AP_Buffer.h>      // APM FIFO Buffer
 
-#include <GCS_MAVLink/GCS_MAVLink.h>    // MAVLink GCS definitions
 #include <AP_SerialManager/AP_SerialManager.h>   // Serial manager library
 #include <AP_Declination/AP_Declination.h> // ArduPilot Mega Declination Helper Library
 #include <DataFlash/DataFlash.h>
-#include <PID/PID.h>
+#include <AC_PID/AC_PID.h>
 #include <AP_Scheduler/AP_Scheduler.h>       // main loop scheduler
 #include <AP_NavEKF/AP_NavEKF.h>
 #include <AP_NavEKF2/AP_NavEKF2.h>
@@ -69,7 +68,7 @@
 #include "defines.h"
 
 #include "Parameters.h"
-#include <GCS_MAVLink/GCS.h>
+#include "GCS_Mavlink.h"
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
 #include <SITL/SITL.h>
@@ -77,7 +76,7 @@
 
 class Tracker : public AP_HAL::HAL::Callbacks {
 public:
-    friend class GCS_MAVLINK;
+    friend class GCS_MAVLINK_Tracker;
     friend class Parameters;
 
     Tracker(void);
@@ -135,7 +134,7 @@ private:
 
     AP_SerialManager serial_manager;
     const uint8_t num_gcs = MAVLINK_COMM_NUM_BUFFERS;
-    GCS_MAVLINK gcs[MAVLINK_COMM_NUM_BUFFERS];
+    GCS_MAVLINK_Tracker gcs[MAVLINK_COMM_NUM_BUFFERS];
 
     AP_BoardConfig BoardConfig;
 
@@ -148,10 +147,10 @@ private:
         bool location_valid;    // true if we have a valid location for the vehicle
         Location location;      // lat, long in degrees * 10^7; alt in meters * 100
         Location location_estimate; // lat, long in degrees * 10^7; alt in meters * 100
-        uint32_t last_update_us;    // last position update in micxroseconds
+        uint32_t last_update_us;    // last position update in microseconds
         uint32_t last_update_ms;    // last position update in milliseconds
-        float heading;          // last known direction vehicle is moving
-        float ground_speed;     // vehicle's last known ground speed in m/s
+        Vector3f vel;           // the vehicle's velocity in m/s
+        int32_t relative_alt;	// the vehicle's relative altitude in meters * 100
     } vehicle;
 
     // Navigation controller state
@@ -168,14 +167,6 @@ private:
         bool scan_reverse_pitch         : 1;// controls direction of pitch movement in SCAN mode
         bool scan_reverse_yaw           : 1;// controls direction of yaw movement in SCAN mode
     } nav_status = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, false, false, true, false, false};
-
-    // Servo state
-    struct {
-        bool yaw_lower      : 1;    // true if yaw servo has been limited from moving to a lower position (i.e. position or rate limited)
-        bool yaw_upper      : 1;    // true if yaw servo has been limited from moving to a higher position (i.e. position or rate limited)
-        bool pitch_lower    : 1;    // true if pitch servo has been limited from moving to a lower position (i.e. position or rate limited)
-        bool pitch_upper    : 1;    // true if pitch servo has been limited from moving to a higher position (i.e. position or rate limited)
-    } servo_limit = {true, true, true, true};
 
     // setup the var_info table
     AP_Param param_loader{var_info};
@@ -256,6 +247,7 @@ private:
     void compass_cal_update();
     void Log_Write_Attitude();
     void Log_Write_Baro(void);
+    void Log_Write_Vehicle_Pos(int32_t lat,int32_t lng,int32_t alt, const Vector3f& vel);
     void Log_Write_Vehicle_Baro(float pressure, float altitude);
     void Log_Write_Vehicle_Startup_Messages();
     void start_logging();

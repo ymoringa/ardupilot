@@ -27,7 +27,7 @@ void NavEKF2_core::ResetVelocity(void)
 
     if (PV_AidingMode != AID_ABSOLUTE) {
         stateStruct.velocity.zero();
-    } else if (!gpsNotAvailable) {
+    } else {
         // reset horizontal velocity states to the GPS velocity
         stateStruct.velocity.x  = gpsDataNew.vel.x; // north velocity from blended accel data
         stateStruct.velocity.y  = gpsDataNew.vel.y; // east velocity from blended accel data
@@ -68,7 +68,7 @@ void NavEKF2_core::ResetPosition(void)
         // reset all position state history to the last known position
         stateStruct.position.x = lastKnownPositionNE.x;
         stateStruct.position.y = lastKnownPositionNE.y;
-    } else if (!gpsNotAvailable) {
+    } else  {
         // write to state vector and compensate for offset  between last GPs measurement and the EKF time horizon
         stateStruct.position.x = gpsDataNew.pos.x  + 0.001f*gpsDataNew.vel.x*(float(imuDataDelayed.time_ms) - float(gpsDataNew.time_ms));
         stateStruct.position.y = gpsDataNew.pos.y  + 0.001f*gpsDataNew.vel.y*(float(imuDataDelayed.time_ms) - float(gpsDataNew.time_ms));
@@ -194,6 +194,11 @@ void NavEKF2_core::SelectVelPosFusion()
     } else {
         fuseVelData = false;
         fusePosData = false;
+    }
+
+    // we have GPS data to fuse and a request to align the yaw using the GPS course
+    if (gpsYawResetRequest) {
+        realignYawGPS();
     }
 
     // Select height data to be fused from the available baro, range finder and GPS sources
@@ -678,6 +683,11 @@ void NavEKF2_core::selectHeightForFusion()
         // reduce weighting (increase observation noise) on baro if we are likely to be in ground effect
         if (getTakeoffExpected() || getTouchdownExpected()) {
             posDownObsNoise *= frontend->gndEffectBaroScaler;
+        }
+        // If we are in takeoff mode, the height measurement is limited to be no less than the measurement at start of takeoff
+        // This prevents negative baro disturbances due to copter downwash corrupting the EKF altitude during initial ascent
+        if (motorsArmed && getTakeoffExpected()) {
+            hgtMea = MAX(hgtMea, meaHgtAtTakeOff);
         }
     } else {
         fuseHgtData = false;

@@ -90,6 +90,7 @@ public:
         uint32_t tune_started           : 1;    // tuning a parameter has started
         uint32_t tune_next              : 3;    // tuning switched to next parameter
         uint32_t tune_save              : 1;    // tuning saved parameters
+        uint32_t tune_error             : 1;    // tuning controller error
     };
 
     // the notify flags are static to allow direct class access
@@ -113,5 +114,6 @@ private:
     static NotifyDevice* _devices[];
 
     AP_Int8 _rgb_led_brightness;
+    AP_Int8 _rgb_led_override;
     AP_Int8 _buzzer_enable;
 };
